@@ -24,7 +24,7 @@ Plain static HTML + JS, Tailwind CSS (browser build), Leaflet. No build step, no
 
 APIs: [Open-Meteo](https://open-meteo.com), [OSRM demo server](https://project-osrm.org),
 [Nominatim](https://nominatim.org), [BigDataCloud](https://www.bigdatacloud.com) reverse geocoding,
-CARTO / OpenStreetMap tiles.
+OpenStreetMap tiles.
 
 ## Run locally
 

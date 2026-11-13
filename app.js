@@ -18,8 +18,8 @@ let lastPlaceQuery = "";
 
 // ---------- Map ----------
 const map = L.map("map", { zoomControl: true }).setView([46.8, 8.2], 6);
-L.tileLayer("https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   maxZoom: 19,
 }).addTo(map);
 const layers = { candidates: L.layerGroup().addTo(map), route: L.layerGroup().addTo(map), origin: L.layerGroup().addTo(map) };
