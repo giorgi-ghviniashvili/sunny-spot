@@ -145,19 +145,110 @@ async function driveTimes(points) {
   }));
 }
 
+// Weather: Open-Meteo first (one batched call); if it's unreachable or slow,
+// fall back to MET Norway (one call per point). Both normalised to the same shape:
+// { hourly: { time[], cloud_cover[], precipitation[], is_day[], weather_code[], temperature_2m[] } }
+let weatherProvider = "open-meteo";
+
 async function forecasts(points) {
+  if (weatherProvider === "open-meteo") {
+    try {
+      return await openMeteoForecasts(points);
+    } catch (err) {
+      console.warn("Open-Meteo failed, falling back to MET Norway:", err);
+      weatherProvider = "met.no";
+    }
+  }
+  setStatus(`Checking the forecast at ${points.length} places (MET Norway)…`);
+  return metNoForecasts(points);
+}
+
+async function openMeteoForecasts(points) {
   const out = [];
   for (let i = 0; i < points.length; i += 50) {
     const chunk = points.slice(i, i + 50);
     const lat = chunk.map((p) => p.lat.toFixed(4)).join(",");
     const lon = chunk.map((p) => p.lon.toFixed(4)).join(",");
-    const d = await getJSON(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-      `&hourly=cloud_cover,precipitation,is_day,weather_code,temperature_2m&timeformat=unixtime&timezone=GMT&forecast_days=8`
-    );
-    out.push(...(Array.isArray(d) ? d : [d]));
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    try {
+      const res = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+        `&hourly=cloud_cover,precipitation,is_day,weather_code,temperature_2m&timeformat=unixtime&timezone=GMT&forecast_days=8`,
+        { signal: ctrl.signal }
+      );
+      if (!res.ok) throw new Error(`Open-Meteo responded ${res.status}`);
+      const d = await res.json();
+      out.push(...(Array.isArray(d) ? d : [d]));
+    } finally {
+      clearTimeout(timer);
+    }
   }
   return out;
+}
+
+async function metNoForecasts(points) {
+  const out = new Array(points.length);
+  let next = 0;
+  async function worker() {
+    while (next < points.length) {
+      const i = next++;
+      const p = points[i];
+      const d = await getJSON(
+        `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${p.lat.toFixed(4)}&lon=${p.lon.toFixed(4)}`
+      );
+      out[i] = metNoToHourly(d.properties.timeseries, p);
+    }
+  }
+  await Promise.all(Array.from({ length: 6 }, worker)); // be polite: max 6 in flight
+  return out;
+}
+
+// MET Norway gives hourly steps for ~2.5 days, then 6-hourly. Expand to an hourly grid.
+function metNoToHourly(series, p) {
+  const steps = series.map((s) => ({ t: Date.parse(s.time) / 1000, d: s.data }));
+  const h = { time: [], cloud_cover: [], precipitation: [], is_day: [], weather_code: [], temperature_2m: [] };
+  let j = 0;
+  for (let t = steps[0].t; t <= steps[steps.length - 1].t; t += 3600) {
+    while (j + 1 < steps.length && steps[j + 1].t <= t) j++;
+    const { d } = steps[j];
+    const inst = d.instant.details;
+    const n1 = d.next_1_hours, n6 = d.next_6_hours;
+    const symbol = (n1 || n6 || d.next_12_hours)?.summary?.symbol_code || "";
+    h.time.push(t);
+    h.cloud_cover.push(Math.round(inst.cloud_area_fraction ?? 100));
+    h.precipitation.push(n1 ? n1.details.precipitation_amount ?? 0 : n6 ? (n6.details.precipitation_amount ?? 0) / 6 : 0);
+    h.is_day.push(sunElevation(p.lat, p.lon, t) > -0.833 ? 1 : 0);
+    h.weather_code.push(symbolToWmo(symbol));
+    h.temperature_2m.push(inst.air_temperature);
+  }
+  return { hourly: h };
+}
+
+function symbolToWmo(s) {
+  if (s.includes("thunder")) return 95;
+  if (s.includes("snow")) return 71;
+  if (s.includes("rain") || s.includes("sleet")) return 61;
+  if (s.startsWith("fog")) return 45;
+  if (s.startsWith("cloudy")) return 3;
+  if (s.startsWith("partlycloudy")) return 2;
+  if (s.startsWith("fair")) return 1;
+  return 0; // clearsky
+}
+
+// Solar elevation in degrees (NOAA-style approximation, good to ~0.5°).
+function sunElevation(lat, lon, tSec) {
+  const rad = Math.PI / 180;
+  const n = tSec / 86400 + 2440587.5 - 2451545.0;
+  const L = (280.46 + 0.9856474 * n) % 360;
+  const g = ((357.528 + 0.9856003 * n) % 360) * rad;
+  const lambda = (L + 1.915 * Math.sin(g) + 0.02 * Math.sin(2 * g)) * rad;
+  const eps = (23.439 - 0.0000004 * n) * rad;
+  const dec = Math.asin(Math.sin(eps) * Math.sin(lambda));
+  const ra = Math.atan2(Math.cos(eps) * Math.sin(lambda), Math.cos(lambda)) / rad;
+  const gmst = (18.697374558 + 24.06570982441908 * n) % 24;
+  const ha = (gmst * 15 + lon - ra) * rad;
+  return Math.asin(Math.sin(lat * rad) * Math.sin(dec) + Math.cos(lat * rad) * Math.cos(dec) * Math.cos(ha)) / rad;
 }
 
 // Evaluate the hours [arrival, arrival + stay) for one location.

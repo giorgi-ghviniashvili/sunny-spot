@@ -22,7 +22,7 @@ gets real drive times to each, adds that to your departure time, and checks the 
 
 Plain static HTML + JS, Tailwind CSS (browser build), Leaflet. No build step, no API keys.
 
-APIs: [Open-Meteo](https://open-meteo.com), [OSRM demo server](https://project-osrm.org),
+APIs: [Open-Meteo](https://open-meteo.com) (falls back to [MET Norway](https://api.met.no) if unreachable), [OSRM demo server](https://project-osrm.org),
 [Nominatim](https://nominatim.org), [BigDataCloud](https://www.bigdatacloud.com) reverse geocoding,
 OpenStreetMap tiles.
 
