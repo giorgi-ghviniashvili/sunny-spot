@@ -1,30 +1,64 @@
-# ☀️ Sunny Spot
+# Sunny Spot
 
 Find the closest place that will be **sunny when you arrive** — not when you leave.
 
-Enter where you're starting from and when you're leaving. Sunny Spot samples ~100 points around you,
-gets real drive times to each, adds that to your departure time, and checks the hourly forecast at the
-**arrival hour** (plus how long you want it to stay sunny). The closest match wins, with the route on the map.
-
 **Live:** https://giorgi-ghviniashvili.github.io/sunny-spot/
 
-## How it works
-
-1. Geocode the start (Nominatim) or use browser geolocation.
-2. Sample candidate points in rings out to your max drive time.
-3. Drive times from the origin to every candidate in one call (OSRM table API), snapped to roads.
-4. Hourly forecast for every reachable candidate (Open-Meteo, batched).
-5. `arrival = start + driveTime`; a spot is sunny if, for every hour in `[arrival, arrival + stay)`,
-   it's daytime, cloud cover ≤ threshold, and no precipitation.
-6. Sort sunny spots by drive time; draw the route (OSRM) and link to Google Maps directions.
+Enter where you start and when you leave. Sunny Spot samples ~100 points around you, gets real
+drive times to each, and checks the hourly forecast at each place's **arrival time**
+(`departure + drive time`) for as long as you want the sun to last. The closest match wins.
 
 ## Stack
 
-Plain static HTML + JS, Tailwind CSS (browser build), Leaflet. No build step, no API keys.
+Static HTML, ES modules, Tailwind CSS (browser build) plus one hand-written stylesheet, Leaflet.
+No build step and no API keys. The theme follows the system (`color-scheme` + `light-dark()`).
 
-APIs: [Open-Meteo](https://open-meteo.com) (falls back to [MET Norway](https://api.met.no) if unreachable), [OSRM demo server](https://project-osrm.org),
-[Nominatim](https://nominatim.org), [BigDataCloud](https://www.bigdatacloud.com) reverse geocoding,
-OpenStreetMap tiles.
+## Code layout
+
+```
+index.html            markup; layout with Tailwind utilities
+styles.css            theme tokens (light/dark) and custom components
+src/
+  main.js             entry point: new App(Config.fromEnvironment()).start()
+  app.js              App — wires form, search and views
+  config.js           Config — every tunable value
+  core/
+    sun-finder.js       SunFinder — arrival = departure + drive; rank sunny places
+    sunny-rule.js       SunnyRule — is this run of hours sunny?
+    candidate-sampler.js CandidateSampler — rings of points around the origin
+  api/
+    geocoder.js         Geocoder — Nominatim search, BigDataCloud reverse
+    router.js           Router — OSRM drive-time table and routes
+    weather/            WeatherService with OpenMeteoProvider → MetNorwayProvider fallback,
+                        both normalised to Forecast
+  ui/
+    search-form.js      SearchForm
+    results-view.js     ResultsView (list + "trip strip")
+    map-view.js         MapView (Leaflet)
+    theme-badge.js      ThemeBadge
+    icons.js            weather icons (inline SVG)
+  lib/                  HttpClient, Geo, format helpers
+```
+
+## Configuration
+
+All settings live in [`src/config.js`](src/config.js): API endpoints, sampling rings, what counts
+as sunny, timeouts, form options and defaults, map start view. Override them in any of three ways:
+
+```html
+<!-- 1. before the app loads -->
+<script>window.SUNNY_SPOT_CONFIG = { search: { topResults: 8 }, form: { maxDriveHours: 2 } };</script>
+```
+
+```js
+// 2. in code
+new App(new Config({ sunny: { maxPrecipMm: 0.3 } })).start();
+```
+
+```
+3. form defaults from the URL
+?from=Seattle&drive=2&stay=3&clouds=40
+```
 
 ## Run locally
 
@@ -33,3 +67,9 @@ python3 -m http.server 5173
 ```
 
 Then open http://localhost:5173.
+
+## Data
+
+[Open-Meteo](https://open-meteo.com) (falls back to [MET Norway](https://api.met.no)),
+[OSRM demo server](https://project-osrm.org), [Nominatim](https://nominatim.org),
+[BigDataCloud](https://www.bigdatacloud.com), OpenStreetMap tiles.

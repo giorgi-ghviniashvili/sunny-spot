@@ -1,0 +1,598 @@
+/* Sunny Spot — theme tokens and hand-written components.
+   Layout and spacing use Tailwind utilities in index.html; everything with
+   a custom look or state lives here. */
+
+/* ---------- Theme ----------
+   `color-scheme: light dark` makes the browser follow the system theme, and
+   `light-dark(a, b)` picks the matching value. No JavaScript involved. */
+:root {
+  color-scheme: light dark;
+
+  --paper: light-dark(#f4f1ea, #0d0e11);
+  --raised: light-dark(#fcfbf7, #16181d);
+  --ink: light-dark(#191813, #ecebe6);
+  --muted: light-dark(#6b685e, #8f9199);
+  --line: light-dark(#dbd6c9, #272a32);
+
+  --sun: light-dark(#f5a300, #ffc23d);
+  --sun-deep: light-dark(#c26a00, #ffc23d); /* sun-coloured text that stays readable */
+  --on-sun: #1b1400;
+  --cloud: light-dark(#b3b6bd, #4d525e);
+  --night: light-dark(#4f59c9, #8390ff);
+  --route: light-dark(#e0520b, #ffb224);
+  --danger: light-dark(#b3261e, #ff8f85);
+
+  --sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --radius: 10px;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+::selection {
+  background: var(--sun);
+  color: var(--on-sun);
+}
+
+:focus-visible {
+  outline: 2px solid var(--sun);
+  outline-offset: 2px;
+}
+
+/* A faint glow in the corner, like light coming in from off-page. */
+.panel,
+body {
+  background-image: radial-gradient(42rem 26rem at -8% -12%, color-mix(in oklab, var(--sun) 16%, transparent), transparent 65%);
+  background-repeat: no-repeat;
+}
+
+/* ---------- Wordmark & headline ---------- */
+.mark {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--sun);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--sun) 28%, transparent);
+}
+
+.sun-word {
+  color: var(--sun-deep);
+}
+
+h1 {
+  text-wrap: balance;
+}
+
+.link {
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 3px;
+  transition: color 0.15s, text-decoration-color 0.15s;
+}
+.link:hover {
+  color: var(--ink);
+  text-decoration-color: var(--sun);
+}
+
+/* ---------- Form ---------- */
+.field {
+  min-width: 0;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+.field-label i {
+  margin-right: 8px;
+  font: 500 11px var(--mono);
+  color: var(--muted);
+}
+
+.input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  font-size: 15px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input::placeholder {
+  color: var(--muted);
+}
+.input:hover {
+  border-color: color-mix(in oklab, var(--ink) 35%, var(--line));
+}
+.input:focus {
+  outline: none;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--sun) 35%, transparent);
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 7px;
+  color: var(--muted);
+  transition: color 0.15s, background 0.15s;
+}
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+.icon-btn:hover {
+  color: var(--ink);
+  background: color-mix(in oklab, var(--ink) 8%, transparent);
+}
+
+.chip {
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  font: 500 11px var(--mono);
+  color: var(--muted);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.chip:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+.chip:active {
+  background: var(--sun);
+  border-color: var(--sun);
+  color: var(--on-sun);
+}
+
+/* Segmented control (radio buttons underneath) */
+.seg {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+}
+.seg-item {
+  cursor: pointer;
+}
+.seg-item span {
+  display: block;
+  padding: 8px 0;
+  border-radius: 7px;
+  text-align: center;
+  font: 500 14px var(--mono);
+  color: var(--muted);
+  transition: background 0.2s var(--ease-out), color 0.2s;
+}
+.seg-item small {
+  margin-left: 1px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+.seg-item:hover span {
+  color: var(--ink);
+}
+.seg-item:has(:checked) span {
+  background: var(--ink);
+  color: var(--paper);
+}
+.seg-item:has(:focus-visible) span {
+  outline: 2px solid var(--sun);
+  outline-offset: 2px;
+}
+
+/* Range slider: the filled part fades from clear sun to cloud */
+.range {
+  --fill: 50%;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 22px;
+  background: none;
+  cursor: pointer;
+}
+.range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 99px;
+  background:
+    linear-gradient(90deg, var(--sun), color-mix(in oklab, var(--sun) 45%, var(--cloud))) 0 / var(--fill) 100% no-repeat,
+    var(--line);
+}
+.range::-moz-range-track {
+  height: 6px;
+  border-radius: 99px;
+  background:
+    linear-gradient(90deg, var(--sun), color-mix(in oklab, var(--sun) 45%, var(--cloud))) 0 / var(--fill) 100% no-repeat,
+    var(--line);
+}
+.range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: -7px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+  transition: transform 0.15s var(--ease-out);
+}
+.range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--paper);
+}
+.range:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+
+/* Call to action: the sun slides across while searching */
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 54px;
+  padding: 0 7px 0 18px;
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 15px;
+  font-weight: 500;
+  transition: transform 0.15s var(--ease-out), opacity 0.2s;
+}
+.cta:active {
+  transform: scale(0.99);
+}
+.cta:disabled {
+  cursor: progress;
+}
+.cta-sun {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 7px;
+  background: var(--sun);
+  color: var(--on-sun);
+  transition: transform 0.4s var(--ease-out);
+}
+.cta-sun svg {
+  width: 20px;
+  height: 20px;
+}
+.cta:hover .cta-sun {
+  transform: rotate(45deg);
+}
+.cta.is-busy .cta-sun svg {
+  animation: spin 2.4s linear infinite;
+}
+.cta.is-busy [data-el="submit-label"]::after {
+  content: "…";
+}
+
+.status {
+  min-height: 18px;
+  margin-top: 10px;
+  font: 400 11px/1.6 var(--mono);
+  color: var(--muted);
+}
+.status.is-error {
+  color: var(--danger);
+}
+
+/* ---------- Results ---------- */
+.results > li {
+  position: relative;
+  border-top: 1px solid var(--line);
+  animation: rise 0.5s var(--ease-out) both;
+  animation-delay: calc(var(--i) * 60ms);
+}
+
+.spot {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  width: 100%;
+  padding: 16px 20px 18px;
+  text-align: left;
+  transition: background 0.15s;
+}
+@media (min-width: 640px) {
+  .spot {
+    padding-inline: 32px;
+  }
+}
+.spot:hover {
+  background: color-mix(in oklab, var(--ink) 4%, transparent);
+}
+.spot[aria-pressed="true"] {
+  background: var(--raised);
+  box-shadow: inset 3px 0 0 var(--sun);
+}
+
+.spot-rank {
+  padding-top: 5px;
+  font: 500 11px var(--mono);
+  color: var(--muted);
+}
+.spot-body {
+  display: grid;
+  min-width: 0;
+}
+.spot-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.spot-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 400 23px/1.15 var(--serif);
+  letter-spacing: -0.01em;
+}
+.spot-drive {
+  flex: none;
+  font: 500 15px var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.spot-region {
+  padding-right: 96px; /* room for the Directions link */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Trip strip: dashed = driving, blocks = each hour of the stay */
+.strip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 10px;
+  margin: 12px 0 10px;
+}
+.strip-drive {
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 8px);
+}
+.strip-hour {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.spot-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  font: 400 11px var(--mono);
+  color: var(--muted);
+}
+.spot-meta b {
+  font-weight: 500;
+  color: var(--ink);
+}
+.spot-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--ink);
+}
+.spot--sunny .spot-icon {
+  color: var(--sun-deep);
+}
+
+.spot-link {
+  position: absolute;
+  right: 20px;
+  top: 45px;
+  font: 500 11px var(--mono);
+  color: var(--muted);
+  transition: color 0.15s;
+}
+@media (min-width: 640px) {
+  .spot-link {
+    right: 32px;
+  }
+}
+.spot-link:hover {
+  color: var(--sun-deep);
+}
+
+/* ---------- Map ---------- */
+.leaflet-container {
+  background: var(--paper);
+  font: inherit;
+}
+
+/* Calm the tiles down in light mode; turn them into a night map in dark mode. */
+.leaflet-tile-pane {
+  filter: grayscale(0.5) contrast(0.94);
+}
+@media (prefers-color-scheme: dark) {
+  .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(195deg) grayscale(0.55) brightness(0.82) contrast(0.92);
+  }
+}
+
+.leaflet-bar {
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius) !important;
+  overflow: hidden;
+  box-shadow: none !important;
+}
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background: var(--raised);
+  color: var(--ink);
+  border-color: var(--line);
+}
+.leaflet-bar a:hover {
+  background: var(--paper);
+}
+.leaflet-control-attribution {
+  background: color-mix(in oklab, var(--paper) 82%, transparent) !important;
+  color: var(--muted);
+  font: 400 10px var(--mono);
+}
+.leaflet-control-attribution a {
+  color: inherit;
+}
+
+.leaflet-tooltip {
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--paper);
+  font: 400 11px/1.5 var(--mono);
+  box-shadow: none;
+}
+.leaflet-tooltip b {
+  font-weight: 600;
+}
+.leaflet-tooltip-top::before {
+  border-top-color: var(--ink);
+}
+
+/* Leaflet draws these as SVG; CSS overrides its inline colours. */
+.spot-dot {
+  stroke: var(--paper);
+  stroke-width: 1.5;
+  fill-opacity: 1;
+  cursor: pointer;
+}
+.spot-dot--sunny {
+  fill: var(--sun);
+}
+.spot-dot--cloudy {
+  fill: var(--cloud);
+}
+.spot-dot--dark {
+  fill: var(--night);
+}
+
+.route-casing {
+  stroke: var(--paper);
+  stroke-width: 8;
+  stroke-opacity: 0.9;
+}
+.route-line {
+  stroke: var(--route);
+  stroke-width: 3.5;
+  stroke-opacity: 1;
+  stroke-dasharray: 1;
+  animation: draw 1.4s var(--ease-out) both;
+}
+
+.pin {
+  position: absolute;
+  translate: -50% -50%;
+  border-radius: 50%;
+}
+.pin-origin {
+  width: 14px;
+  height: 14px;
+  background: var(--ink);
+  box-shadow: 0 0 0 3px var(--paper), 0 0 0 4px var(--ink);
+}
+.pin-dest {
+  width: 18px;
+  height: 18px;
+  background: var(--cloud);
+  box-shadow: 0 0 0 3px var(--paper);
+}
+.pin-dest--sunny {
+  background: var(--sun);
+}
+.pin-dest--dark {
+  background: var(--night);
+}
+.pin-dest--sunny::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--sun);
+  animation: pulse 2s var(--ease-out) infinite;
+}
+
+.legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 500;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: color-mix(in oklab, var(--paper) 88%, transparent);
+  backdrop-filter: blur(8px);
+  font: 400 11px var(--mono);
+  pointer-events: none;
+}
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.legend-dot--sunny {
+  background: var(--sun);
+}
+.legend-dot--cloudy {
+  background: var(--cloud);
+}
+.legend-dot--dark {
+  background: var(--night);
+}
+
+/* ---------- Motion ---------- */
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+}
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+@keyframes pulse {
+  to {
+    scale: 2.6;
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

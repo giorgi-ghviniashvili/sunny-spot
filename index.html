@@ -3,119 +3,138 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sunny Spot — find sun where you'll arrive</title>
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0d0e11" media="(prefers-color-scheme: dark)" />
+  <title>Sunny Spot — sun, on arrival</title>
   <meta name="description" content="Find the closest place that will be sunny when you get there, and the route to drive." />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☀️</text></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='5' fill='%23f5a300'/><g stroke='%23f5a300' stroke-width='2' stroke-linecap='round'><path d='M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1'/></g></svg>" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="styles.css?v=4" />
+
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.1.11"></script>
+  <!-- Tailwind utilities read the theme tokens defined in styles.css -->
   <style type="text/tailwindcss">
-    @theme {
-      --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+    @theme inline {
+      --font-sans: var(--sans);
+      --font-serif: var(--serif);
+      --font-mono: var(--mono);
+      --color-paper: var(--paper);
+      --color-raised: var(--raised);
+      --color-ink: var(--ink);
+      --color-muted: var(--muted);
+      --color-line: var(--line);
+      --color-sun: var(--sun);
     }
-    .leaflet-container { font-family: inherit; }
-    .leaflet-popup-content-wrapper { border-radius: 14px; }
-    .spin { animation: spin 1s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-sky-100 text-slate-800 antialiased">
-  <div class="mx-auto max-w-7xl px-4 py-6 sm:py-10">
-    <!-- Header -->
-    <header class="mb-6 flex items-center gap-3">
-      <div class="grid size-11 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-2xl shadow-lg shadow-orange-500/30">☀️</div>
-      <div>
-        <h1 class="text-2xl font-extrabold tracking-tight sm:text-3xl">Sunny Spot</h1>
-        <p class="text-sm text-slate-500">The closest place that will be sunny <em>when you arrive</em>.</p>
-      </div>
-    </header>
+<body class="bg-paper font-sans text-ink antialiased">
+  <div class="flex min-h-dvh flex-col lg:grid lg:h-dvh lg:grid-cols-[minmax(390px,440px)_minmax(0,1fr)]">
 
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
-      <!-- Controls + results -->
-      <aside class="min-w-0 space-y-6">
-        <form id="form" class="space-y-4 rounded-3xl border border-white/60 bg-white/70 p-5 shadow-xl shadow-orange-900/5 backdrop-blur">
-          <div>
-            <label for="place" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Starting from</label>
-            <div class="flex gap-2">
-              <input id="place" type="text" placeholder="City or address" autocomplete="off"
-                class="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100" />
-              <button id="locate" type="button" title="Use my location"
-                class="grid size-11 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-lg transition hover:border-orange-300 hover:bg-orange-50">📍</button>
+    <!-- On phones the panel dissolves (display: contents) so the map can sit between form and results. -->
+    <aside class="panel contents lg:block lg:overflow-y-auto lg:border-r lg:border-line">
+
+      <div class="order-1 px-5 pt-5 sm:px-8 sm:pt-7">
+        <header class="flex items-center justify-between">
+          <a href="./" class="flex items-center gap-2 font-mono text-[13px] font-medium tracking-tight">
+            <span class="mark" aria-hidden="true"></span>sunny spot
+          </a>
+          <span id="theme-badge" class="font-mono text-[11px] text-muted" title="Follows your system theme"></span>
+        </header>
+
+        <h1 class="mt-9 font-serif text-[clamp(2.75rem,9vw,3.75rem)] leading-[0.95] tracking-tight">
+          Sun, <em class="sun-word">on arrival.</em>
+        </h1>
+        <p class="mt-4 max-w-[36ch] text-[15px] leading-relaxed text-muted">
+          Say where and when you leave. You get the nearest place where the sky is clear by the time you pull in&nbsp;— not when you set off.
+        </p>
+
+        <form id="search" class="mt-8 flex flex-col gap-6" novalidate>
+          <div class="field">
+            <label class="field-label" for="place"><i>01</i>From</label>
+            <div class="relative">
+              <input id="place" data-el="place" class="input pr-11" type="text" placeholder="City or address" autocomplete="off" spellcheck="false" />
+              <button data-el="locate" type="button" class="icon-btn absolute inset-y-1 right-1" title="Use my location" aria-label="Use my location">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22"/></svg>
+              </button>
             </div>
-            <p id="originLabel" class="mt-1.5 truncate text-xs text-slate-400">Type a place or use your location.</p>
+            <p data-el="origin-label" class="mt-1.5 min-h-4 truncate font-mono text-[11px] text-muted"></p>
+          </div>
+
+          <div class="field">
+            <div class="flex items-end justify-between">
+              <label class="field-label" for="start"><i>02</i>Leave</label>
+              <div class="mb-2 flex gap-1.5">
+                <button type="button" class="chip" data-start-preset="now">now</button>
+                <button type="button" class="chip" data-start-preset="next-hour">next hour</button>
+                <button type="button" class="chip" data-start-preset="tomorrow-9">tomorrow 9:00</button>
+              </div>
+            </div>
+            <input id="start" data-el="start" class="input font-mono" type="datetime-local" />
+          </div>
+
+          <div class="grid grid-cols-[5fr_4fr] gap-4">
+            <fieldset class="field">
+              <legend class="field-label"><i>03</i>Drive up to</legend>
+              <div data-el="drive-options" class="seg"></div>
+            </fieldset>
+            <fieldset class="field">
+              <legend class="field-label"><i>04</i>Sun for</legend>
+              <div data-el="stay-options" class="seg"></div>
+            </fieldset>
+          </div>
+
+          <div class="field">
+            <div class="flex items-baseline justify-between">
+              <label class="field-label" for="clouds"><i>05</i>Cloud tolerance</label>
+              <output data-el="clouds-value" for="clouds" class="font-mono text-xs"></output>
+            </div>
+            <input id="clouds" data-el="clouds" class="range" type="range" />
+            <div class="mt-1.5 flex justify-between font-mono text-[10px] uppercase tracking-wider text-muted">
+              <span>clear sky</span><span>some cloud</span>
+            </div>
           </div>
 
           <div>
-            <label for="start" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Leaving at</label>
-            <input id="start" type="datetime-local"
-              class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100" />
+            <button data-el="submit" type="submit" class="cta">
+              <span data-el="submit-label">Find the sun</span>
+              <span class="cta-sun" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.6" fill="currentColor"/><path d="M12 3v2.4M12 18.6V21M3 12h2.4M18.6 12H21M5.6 5.6l1.7 1.7M16.7 16.7l1.7 1.7M5.6 18.4l1.7-1.7M16.7 7.3l1.7-1.7"/></svg>
+              </span>
+            </button>
+            <p data-el="status" class="status" role="status" aria-live="polite"></p>
           </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label for="maxDrive" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Max drive</label>
-              <select id="maxDrive" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100">
-                <option value="1">1 hour</option>
-                <option value="2">2 hours</option>
-                <option value="3" selected>3 hours</option>
-                <option value="4">4 hours</option>
-                <option value="5">5 hours</option>
-              </select>
-            </div>
-            <div>
-              <label for="stay" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Sunny for</label>
-              <select id="stay" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-100">
-                <option value="1">1 hour</option>
-                <option value="2" selected>2 hours</option>
-                <option value="3">3 hours</option>
-                <option value="4">4 hours</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <div class="mb-1.5 flex items-center justify-between">
-              <label for="clouds" class="text-xs font-semibold uppercase tracking-wide text-slate-500">Max cloud cover</label>
-              <span id="cloudsVal" class="text-xs font-semibold text-orange-600">30%</span>
-            </div>
-            <input id="clouds" type="range" min="10" max="60" step="5" value="30" class="w-full accent-orange-500" />
-          </div>
-
-          <button id="go" type="submit"
-            class="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-orange-500/30 transition hover:brightness-105 active:scale-[.99] disabled:cursor-wait disabled:opacity-70">
-            <span id="goIcon">☀️</span><span id="goText">Find the sun</span>
-          </button>
-          <p id="status" class="min-h-4 text-center text-xs text-slate-500"></p>
         </form>
+      </div>
 
-        <section id="results" class="hidden space-y-3">
-          <h2 class="px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Best options</h2>
-          <ol id="list" class="space-y-2.5"></ol>
-        </section>
-      </aside>
+      <section id="results" class="order-3 mt-8 border-t border-line" hidden>
+        <h2 data-el="results-title" class="px-5 pt-5 pb-3 font-mono text-[11px] uppercase tracking-wider text-muted sm:px-8"></h2>
+        <ol data-el="results-list" class="results"></ol>
+      </section>
 
-      <!-- Map -->
-      <main class="relative overflow-hidden rounded-3xl border border-white/60 bg-white/70 shadow-xl shadow-orange-900/5">
-        <div id="map" class="h-[60vh] min-h-[420px] w-full lg:h-[calc(100vh-10rem)]"></div>
-        <div class="pointer-events-none absolute bottom-4 left-4 z-[500] flex flex-wrap gap-2 text-xs font-medium">
-          <span class="rounded-full bg-white/90 px-2.5 py-1 shadow"><span class="mr-1 inline-block size-2.5 rounded-full bg-amber-400 align-middle"></span>Sunny on arrival</span>
-          <span class="rounded-full bg-white/90 px-2.5 py-1 shadow"><span class="mr-1 inline-block size-2.5 rounded-full bg-slate-400 align-middle"></span>Cloudy / rain</span>
-          <span class="rounded-full bg-white/90 px-2.5 py-1 shadow"><span class="mr-1 inline-block size-2.5 rounded-full bg-indigo-500 align-middle"></span>Dark</span>
-        </div>
-      </main>
-    </div>
+      <footer class="order-4 px-5 py-6 font-mono text-[11px] leading-relaxed text-muted sm:px-8">
+        Weather <a class="link" href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> / <a class="link" href="https://api.met.no" target="_blank" rel="noopener">MET Norway</a>
+        · Routing <a class="link" href="https://project-osrm.org" target="_blank" rel="noopener">OSRM</a>
+        · Map <a class="link" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a><br />
+        A forecast is a forecast. Bring a jacket.
+      </footer>
+    </aside>
 
-    <footer class="mt-8 text-center text-xs text-slate-400">
-      Weather: <a class="underline hover:text-slate-600" href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> / <a class="underline hover:text-slate-600" href="https://api.met.no" target="_blank" rel="noopener">MET Norway</a> ·
-      Routing: <a class="underline hover:text-slate-600" href="https://project-osrm.org" target="_blank" rel="noopener">OSRM</a> ·
-      Map: <a class="underline hover:text-slate-600" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>.
-      Forecasts are forecasts — bring a jacket.
-    </footer>
+    <main class="relative order-2 mt-8 h-[62dvh] min-h-[380px] border-y border-line lg:mt-0 lg:h-auto lg:border-0">
+      <div id="map" class="absolute inset-0"></div>
+      <ul class="legend" aria-label="Map legend">
+        <li><span class="legend-dot legend-dot--sunny"></span>sunny on arrival</li>
+        <li><span class="legend-dot legend-dot--cloudy"></span>cloud or rain</li>
+        <li><span class="legend-dot legend-dot--dark"></span>dark</li>
+      </ul>
+    </main>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=3"></script>
+  <script type="module" src="src/main.js?v=4"></script>
 </body>
 </html>
